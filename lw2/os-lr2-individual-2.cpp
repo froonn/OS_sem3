@@ -97,7 +97,7 @@ int main()
                 write_process_killed(6);
                 exit(0);
             }
-            execl("/bin/sh", "sh", "-c", "ls ostis-example-app", NULL);
+            execl("/bin/sh", "sh", "-c", "ls", NULL);
             write_process_killed(3);
             exit(0);
         }

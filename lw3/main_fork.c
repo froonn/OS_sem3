@@ -25,7 +25,7 @@
 #define SIZE_MMAP (sizeof(struct Point))
 #define START (-10)
 #define STOP 10
-#define STEP 1
+#define STEP 0.1
 #define SLEEP_TIME 0
 #define OUTPUT_FILE "output.txt"
 #define LOG_FILE "log.txt"
@@ -38,24 +38,25 @@ typedef struct Point {
 } Point;
 
 void calculate_function(Point *point, sem_t *sem_calc, sem_t *sem_write) {
-    int sem_calc_value, sem_write_value;
+//    int sem_calc_value, sem_write_value;
     for (double i = START; i < STOP; i += STEP) {
         sem_wait(sem_calc);
         point->x = i;
         point->y = sin(i);
         point->time_received = time(NULL);
 
-        sem_getvalue(sem_calc, &sem_calc_value);
-        sem_getvalue(sem_write, &sem_write_value);
-        printf("calc_func: sem_calc: %i, sem_write_value: %i, i: %lf, x: %lf\n", sem_calc_value, sem_write_value, i, point->x);
+//        sem_getvalue(sem_calc, &sem_calc_value);
+//        sem_getvalue(sem_write, &sem_write_value);
+//        printf("calc_func: sem_calc: %i, sem_write_value: %i, i: %lf, x: %lf\n", sem_calc_value, sem_write_value, i, point->x);
+
+        sleep(SLEEP_TIME);
 
         sem_post(sem_write);
-        sleep(SLEEP_TIME);
     }
 }
 
 void write_to_file(Point *point, sem_t *sem_write, sem_t *sem_log) {
-    int sem_log_value, sem_write_value;
+//    int sem_log_value, sem_write_value;
     for (double i = START; i < STOP; i += STEP) {
         sem_wait(sem_write);
         FILE *file = fopen(OUTPUT_FILE, "a");
@@ -64,19 +65,19 @@ void write_to_file(Point *point, sem_t *sem_write, sem_t *sem_log) {
             fclose(file);
         }
 
-        sem_getvalue(sem_write, &sem_write_value);
-        sem_getvalue(sem_log, &sem_log_value);
-        printf("write_func: sem_write_value: %i, sem_log_value: %i\n", sem_write_value, sem_log_value);
+//        sem_getvalue(sem_write, &sem_write_value);
+//        sem_getvalue(sem_log, &sem_log_value);
+//        printf("write_func: sem_write_value: %i, sem_log_value: %i\n", sem_write_value, sem_log_value);
 
         point->time_logged = time(NULL);
         sem_post(sem_log);
-        sleep(SLEEP_TIME);
+//        sleep(SLEEP_TIME);
 
     }
 }
 
 void log_times(Point *point, sem_t *sem_calc, sem_t *sem_log) {
-    int sem_log_value, sem_calc_value;
+//    int sem_log_value, sem_calc_value;
 
     for (double i = START; i < STOP; i += STEP) {
         sem_wait(sem_log);
@@ -87,12 +88,12 @@ void log_times(Point *point, sem_t *sem_calc, sem_t *sem_log) {
             fclose(log_file);
         }
 
-        sem_getvalue(sem_log, &sem_log_value);
-        sem_getvalue(sem_calc, &sem_calc_value);
-        printf("log_func: sem_calc_value: %i, sem_log_value: %i\n", sem_calc_value, sem_log_value);
+//        sem_getvalue(sem_log, &sem_log_value);
+//        sem_getvalue(sem_calc, &sem_calc_value);
+//        printf("log_func: sem_calc_value: %i, sem_log_value: %i\n", sem_calc_value, sem_log_value);
 
         sem_post(sem_calc);
-        sleep(SLEEP_TIME);
+//        sleep(SLEEP_TIME);
     }
 }
 
@@ -135,6 +136,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
     fclose(file);
+
+    printf("parent PID: %i\n", getpid());
 
     pid_t first_stream, second_stream, third_stream;
 

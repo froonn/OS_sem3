@@ -1,0 +1,7 @@
+*.f90
+.idea
+cmake-build-debug
+build
+test.c
+test
+a.out
