@@ -16,7 +16,6 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include <fcntl.h>
-#include <sys/wait.h>
 #include <sys/mman.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +27,7 @@
 #define STOP 10
 #define STEP 0.1
 #define SIZE_MMAP (sizeof(struct Point) * ((int) (abs(START - STOP) / STEP) - 1))
-#define SLEEP_TIME 0
+#define SLEEP_TIME 2
 #define OUTPUT_FILE "output.txt"
 #define LOG_FILE "log.txt"
 
@@ -63,50 +62,57 @@ void *calculate_function(void *args) {
 
 void *write_to_file(void *args) {
     ThreadArgs *thread_args = (ThreadArgs *) args;
-
+    FILE *file = fopen(OUTPUT_FILE, "a");
+    if (!file) {
+        pthread_exit((void *) EXIT_FAILURE);
+    }
     for (double i = START; i < STOP - STEP / 2; i += STEP) {
         int index = (i - START + STEP / 2) / STEP;
 
         sem_wait(thread_args->sem_write);
-        FILE *file = fopen(OUTPUT_FILE, "a");
-        if (file) {
-            fprintf(file, "x: %lf, y: %lf\n", thread_args->point[index].x, thread_args->point[index].y);
-            fclose(file);
-        }
+
+        fprintf(file, "x: %lf, y: %lf\n", thread_args->point[index].x, thread_args->point[index].y);
         thread_args->point[index].time_logged = time(NULL);
 
         sem_post(thread_args->sem_log);
     }
+
+    fclose(file);
     pthread_exit(EXIT_SUCCESS);
 }
 
 void *log_times(void *args) {
     ThreadArgs *thread_args = (ThreadArgs *) args;
+    FILE *log_file = fopen(LOG_FILE, "a");
+
+    if (!log_file) {
+        pthread_exit((void *) EXIT_FAILURE);
+    }
 
     for (double i = START; i < STOP - STEP / 2; i += STEP) {
         int index = (i - START + STEP / 2) / STEP;
 
         sem_wait(thread_args->sem_log);
-        FILE *log_file = fopen(LOG_FILE, "a");
-        if (log_file) {
-            fprintf(log_file, "time_received for x = %lf: %s", thread_args->point[index].x,
-                    ctime(&(thread_args->point)[index].time_received));
-            fprintf(log_file, "time_logged for x = %lf: %s", thread_args->point[index].x,
-                    ctime(&(thread_args->point)[index].time_logged));
-            fclose(log_file);
-        }
+
+        fprintf(log_file, "time_received for x = %lf: %s", thread_args->point[index].x,
+                ctime(&(thread_args->point)[index].time_received));
+        fprintf(log_file, "time_logged for x = %lf: %s", thread_args->point[index].x,
+                ctime(&(thread_args->point)[index].time_logged));
     }
+
+    fclose(log_file);
     pthread_exit(EXIT_SUCCESS);
 }
 
 int main(void) {
-
+    printf("%i %i\n", getpid(), SIZE_MMAP);
     Point *shared_mem = mmap(NULL, SIZE_MMAP, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 
     if (shared_mem == MAP_FAILED) {
         perror("mmap");
         exit(EXIT_FAILURE);
     }
+
 
     sem_unlink("/sem_write");
     sem_unlink("/sem_log");
